@@ -60,6 +60,8 @@ jQuery(async () => {
   $("#my_button").on("click", onButtonClick);
   $("#example_setting").on("input", onExampleInput);
 
+    var api = new NovelAiApi();
+    console.log(api);
   // Load settings when starting things up (if you have any)
   loadSettings();
 });
