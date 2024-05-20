@@ -14,7 +14,10 @@
         "LICENSE",
         "README.md",
         "package.json",
-        "index.min.js"
+        "index.min.js",
+        "pack.js",
+        "unpack.js",
+        "iterators.js"
       ]
     },
     {
