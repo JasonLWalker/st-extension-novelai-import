@@ -1,0 +1,11 @@
+{
+    "display_name": "NovelAI Scenario Import",
+    "loading_order": 9,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "JasonLWalker",
+    "version": "0.0.1",
+    "homePage": "yourUrlHere"
+}
