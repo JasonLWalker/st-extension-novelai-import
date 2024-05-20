@@ -14,9 +14,7 @@
         "LICENSE",
         "README.md",
         "package.json",
-        "dist/index.js",
-        "dist/index.min.js",
-        "dist/index.min.js.map"
+        "index.min.js"
       ]
     },
     {
