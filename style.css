@@ -1,1 +1,32 @@
 /* All style elements for your extension go here */
+.d-none {
+    display: none !important;
+}
+
+.d-inline-block {
+    display: inline-block
+}
+/*
+#nai-import-index {
+    min-height: 70vh;
+}
+*/
+#nai-import-index .import-navbar {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    margin: 5px;
+    column-gap: 5px;
+}
+
+#nai-import-login button, #nai-import-login input {
+    padding: 8px;
+    margin-bottom: 8px;
+}
+
+#nai-import-login button {
+    white-space: nowrap;
+    background-color: var(--crimson70a);
+    margin-left: auto;
+    margin-right: auto;
+}
