@@ -27,9 +27,9 @@ import './lib/meta-png/dist/meta-png.umd.js'
 // Keep track of where your extension is located, name should match repo name
 const extensionName = "st-extension-novelai-import";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
-const extensionSettings = extension_settings[extensionName];
 const defaultSettings = {
-    enabled: false
+    enabled: false,
+    passthroughEnabled: false
 };
 
 const novelApi = new NovelAiApi();
@@ -51,9 +51,18 @@ async function loadSettings() {
         Object.assign(extension_settings[extensionName], defaultSettings);
     }
 
+    const extensionSettings = extension_settings[extensionName];
+
     // Updating settings in the UI
-    $("#nai-import-enabled").prop("checked", extension_settings[extensionName].enabled).trigger("input");
-    //log(extensionSettings);
+    $("#nai-import-enabled").prop("checked", extensionSettings['enabled']);
+    $("#nai-import-passthrough-enabled").prop("checked", extensionSettings['passthroughEnabled']);
+
+    enablePlugin(extensionSettings['enabled']);
+    if (extensionSettings['passthroughEnabled'])
+        novelApi.setApiEndpoint(`/api/plugins/novelai-passthrough`);
+    else
+        novelApi.setApiEndpoint(API_NOVELAI);
+
 }
 
 
@@ -64,6 +73,17 @@ function onSettingsEnablePlugin(event) {
     saveSettingsDebounced();
     enablePlugin(value);
 }
+
+function onSettingsEnablePassthrough(event) {
+    const value = Boolean($(event.target).prop("checked"));
+    extension_settings[extensionName].passthroughEnabled = value;
+    saveSettingsDebounced();
+    if (value)
+        novelApi.setApiEndpoint(`/api/plugins/novelai-passthrough`);
+    else
+        novelApi.setApiEndpoint(API_NOVELAI);
+}
+
 
 
 function enablePlugin(enabled) {
@@ -104,6 +124,7 @@ function onOriginalExternalImportButton() {
 async function tryLogin() {
     // Retrieve NovelAi keys from API
     var keys = novelApi['keys'];
+    var extensionSettings = extension_settings[extensionName];
 
     // Does an access token and encryption key exist from a previous login session?
     if (extensionSettings['accessToken'] && extensionSettings['encryptionKey']) {
@@ -111,9 +132,11 @@ async function tryLogin() {
         try {
             // log in and initialize keystore
             await novelApi.populateKeyStore(extensionSettings['accessToken'], extensionSettings['encryptionKey']);
-        } catch {
+        } catch (ex) {
+            toastr.error('An error occurred while accessing NovelAI. Please log in again.')
+            
             // Something happened. (Usually either the access token has expired, or the encryption key is invalid)
-            log('An error occurred while populating keystore. Clearing keys');
+            log('An error occurred while populating keystore. Clearing keys', ex);
             // an error occurred. Clear keys and force login
             keys['accessToken'] = '';
             keys['encryptionKey'] = '';
@@ -132,27 +155,6 @@ async function tryLogin() {
     // Do we need to log in?
     if (!keys['accessToken'] || !keys['encryptionKey']) {
         showLogin($content);
-
-        // Add login button handler
-        $('#nai-import-login button[name=nai-login]').off().on('click', async function(){
-            try {
-                // Login using username/password info to generate an access and encryption key, and populate access token and keystore
-                await novelApi.login(
-                    $('#nai-import-login input[name=nai-username]').val(), 
-                    $('#nai-import-login input[name=nai-password]').val()
-                );
-
-                // clear hashed access key so that it isn't sitting around.
-                keys['accessKey'] = '';
-
-                // Save access token and encryption key into settings so that we can use this session for future page refreshes.
-                extensionSettings['accessToken'] = keys['accessToken'];
-                extensionSettings['encryptionKey'] = novelApi.encodeBase64(keys['encryptionKey']);
-                saveSettingsDebounced();
-            } catch {
-                // Todo: add login error handling
-            }
-        });
     }
 
     return (keys['accessToken'] && keys['encryptionKey'])
@@ -185,17 +187,54 @@ function convertImgToPng(imgUrl, callback) {
     img.src = imgUrl;
 }
 
-
-
 // Add the login form to the content area specified
 function showLogin($content) {
+    var keys = novelApi['keys']
+    var extensionSettings = extension_settings[extensionName];
+
     // Clear the content area of the dialog box
     $content.empty();
     // Add login form to dialog
     $content.append(loginHtml);
+
+
+    // Add login button handler
+    $('#nai-import-login button[name=nai-login]').off().on('click', async function(){
+        try {
+            // Login using username/password info to generate an access and encryption key, and populate access token and keystore
+            await novelApi.login(
+                $('#nai-import-login input[name=nai-username]').val(), 
+                $('#nai-import-login input[name=nai-password]').val()
+            );
+
+            // clear hashed access key so that it isn't sitting around.
+            keys['accessKey'] = '';
+
+            // Save access token and encryption key into settings so that we can use this session for future page refreshes.
+            extensionSettings['accessToken'] = keys['accessToken'];
+            extensionSettings['encryptionKey'] = novelApi.encodeBase64(keys['encryptionKey']);
+            saveSettingsDebounced();
+            onImportCharacterButton();
+        } catch (ex){
+            // Todo: add login error handling
+            console.log(ex);
+            if (ex['status'] == 401)
+            {
+                toastr.error('Please check your username and/or password and try again.', 'Unable to log in to NovelAI.')
+            }
+            else if (ex['responseJSON'] && ex.responseJSON['statusCode'] && ex.responseJSON['message']) 
+            {
+                toastr.error(ex.responseJSON['message']);
+            }
+            else 
+            {
+                toastr.error('An unknown error has occurred. If your site is not running over HTTPS, you will need to install and enable the NovelAi Passthrough plugin.');
+            }
+
+        }
+    });
+
 }
-
-
 
 /**
  * Imports a character from a file. --Borrowed from scripts.js since it isn't exported
@@ -405,23 +444,26 @@ jQuery(async () => {
     
     window.sodium = {
         onload: function(sodium) {
+            const extensionSettings = extension_settings[extensionName];
             log('libSodium Ready');
             enablePlugin(extensionSettings['enabled']);
 
-            // Use novelai-passthrough extension if not running over SSL
-            novelApi.setApiEndpoint(`/api/plugins/novelai-passthrough`);
-            
+            if (extensionSettings['passthroughEnabled']) {
+                // Use novelai-passthrough extension if not running over SSL
+                novelApi.setApiEndpoint(`/api/plugins/novelai-passthrough`);
+            }
+
             // Append settingsHtml to extensions_settings
             // extension_settings and extensions_settings2 are the left and right columns of the settings menu
             // Left should be extensions that deal with system functions and right should be visual/UI related 
             $("#extensions_settings").append(settingsHtml);
 
-            // These are examples of listening for events
-            //$("#my_button").on("click", onButtonClick);
-            $("#nai-import-enabled").on("input", onSettingsEnablePlugin);
-
             // Load settings when starting things up (if you have any)
             loadSettings();
+            // Listen for events in settings
+            $("#nai-import-enabled").on("input", onSettingsEnablePlugin);
+            $("#nai-import-passthrough-enabled").on("input", onSettingsEnablePassthrough);
+
 
         }
     };
