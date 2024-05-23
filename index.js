@@ -452,6 +452,7 @@ jQuery(async () => {
             if (extensionSettings['passthroughEnabled']) {
                 // Use novelai-passthrough extension if not running over SSL
                 novelApi.setApiEndpoint(`/api/plugins/novelai-passthrough`);
+                novelApi.setAuthHeader('_Authorization');
             }
 
             // Append settingsHtml to extensions_settings
