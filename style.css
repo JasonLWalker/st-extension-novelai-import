@@ -11,6 +11,25 @@
     min-height: 70vh;
 }
 */
+
+#nai-import-index .character-card {
+    display: flex;
+    text-align: left;
+    flex-flow: row;
+    width: 100%;
+}
+
+#nai-import-index .character-card div {
+    flex: auto;
+    min-height: var(--avatar-base-height);
+}
+
+
+#nai-import-index .character-card div.avatar, #nai-import-index .avatar-buttons {
+    flex: none;
+    margin-right: 1em;
+}
+
 #nai-import-index .import-navbar {
     display: flex;
     flex-direction: row;
