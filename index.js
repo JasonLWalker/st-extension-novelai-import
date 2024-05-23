@@ -444,9 +444,10 @@ jQuery(async () => {
     
     window.sodium = {
         onload: function(sodium) {
-            const extensionSettings = extension_settings[extensionName];
             log('libSodium Ready');
-            enablePlugin(extensionSettings['enabled']);
+            // Load settings when starting things up (if you have any)
+            loadSettings();
+            const extensionSettings = extension_settings[extensionName];
 
             if (extensionSettings['passthroughEnabled']) {
                 // Use novelai-passthrough extension if not running over SSL
@@ -458,8 +459,6 @@ jQuery(async () => {
             // Left should be extensions that deal with system functions and right should be visual/UI related 
             $("#extensions_settings").append(settingsHtml);
 
-            // Load settings when starting things up (if you have any)
-            loadSettings();
             // Listen for events in settings
             $("#nai-import-enabled").on("input", onSettingsEnablePlugin);
             $("#nai-import-passthrough-enabled").on("input", onSettingsEnablePassthrough);
